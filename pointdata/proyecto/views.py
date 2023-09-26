@@ -5,6 +5,7 @@ from rest_framework.request import Request
 from rest_framework.decorators import api_view
 from rest_framework.permissions import IsAdminUser
 from rest_framework_simplejwt.views import TokenObtainPairView
+from django.core.mail import send_mail
 from .serializers import *
 from .models import *
 
@@ -15,9 +16,16 @@ def registrar(request: Request):
 
     if serializador.is_valid():
         nuevoUsuario = Usuario(**serializador.validated_data)
-        nuevoUsuario.set_password(
-            serializador.validated_data.get('password'))
+        password = serializador.validated_data.get('password')
+        nuevoUsuario.set_password(password)
         nuevoUsuario.save()
+
+        subject = 'Registro exitoso'
+        message = f'Gracias por registrarte. Tu contraseña es: {password}'
+        from_email = 'isaias.guizado@gmail.com'
+        recipient_list = [nuevoUsuario.correo]
+        send_mail(subject, message, from_email, recipient_list)    
+
         return Response(data={'message': 'Usuario registrado exitosamente'}, status=status.HTTP_201_CREATED)
     else:
         return Response(data={
