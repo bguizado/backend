@@ -36,22 +36,75 @@ def registrar(request: Request):
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
 
+class UsuariosController(APIView):
+
+   # permission_classes = [IsAdminUser]
+
+    def get(self, request: Request):
+        usuarios = Usuario.objects.all()
+        serializador = RegistroSerializer(usuarios, many=True)
+
+        return Response(data={
+            'message': 'Usuarios : ',
+            'content': serializador.data
+        }, status=status.HTTP_200_OK)
+    
 class UsuarioController(APIView):
-    def post(self, request):
-        pass
+    
+    #permission_classes = [IsAdminUser] 
 
-    def get(self, request):
-        pass
+    def get(self, request: Request, id: str):
+        usuarioEncontrado = Usuario.objects.filter(id=id).first()
+        if not usuarioEncontrado:
+            return Response(data={
+                'message': 'Usuario no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
 
-    def put(self, request):
-        pass
+        serializador = RegistroSerializer(
+            instance=usuarioEncontrado)
+        return Response(data={
+            'content': serializador.data
+        }, status=status.HTTP_200_OK)
+    
+    def put(self, request: Request, id: str):
+        usuarioEncontrado = Usuario.objects.filter(id=id).first()
+        if not usuarioEncontrado:
+            return Response(data={
+                'message': 'Usuario no encontrada'
+            }, status=status.HTTP_404_NOT_FOUND)
 
-    def delete(self, request):
-        pass
+        data = request.data
+        serializador = UsuarioSerializer(data=data)
+        dataValida = serializador.is_valid()
+        if dataValida:
+            serializador.validated_data
+            serializador.update(usuarioEncontrado, serializador.validated_data)
 
+            return Response(data={
+                'message': 'Usuario actualizado exitosamente'
+            }, status=status.HTTP_200_OK)
+
+        else:
+            return Response(data={
+                'message': 'Error al actualizar el usuario',
+                'content': serializador.errors
+            }, status=status.HTTP_400_BAD_REQUEST)
+
+    def delete(self, request , id):
+        usuarioEncontrado = Usuario.objects.filter(id=id).first()
+        if not usuarioEncontrado:
+            return Response(data={
+                'message': 'Usuario no encontrado'
+            }, status=status.HTTP_404_NOT_FOUND)
+
+        Usuario.objects.filter(id=id).delete()
+
+        return Response(data={
+            'message': 'Usuario eliminado exitosamente'
+        }, status=status.HTTP_200_OK)
 
 class TiendasController(APIView):
-    permission_classes = [IsAdminUser]
+    #permission_classes = [IsAdminUser]
 
     def post(self, request: Request):
         serializador = TiendaSerializer(data=request.data)
@@ -84,7 +137,7 @@ class TiendasController(APIView):
 
 
 class TiendaController(APIView):
-    permission_classes = [IsAdminUser]
+     #permission_classes = [IsAdminUser]
 
     def get(self, request: Request, id: str):
         tiendaEncontrada = Tienda.objects.filter(id=id).first()

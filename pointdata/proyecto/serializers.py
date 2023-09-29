@@ -3,6 +3,18 @@ from .models import *
 from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 
+class UsuarioSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Usuario
+        fields = '__all__'  # Incluye todos los campos del modelo
+        extra_kwargs = {
+            'correo': {'required': False},
+            'contraseña': {'required': False},
+            'nombre': {'required': False},
+            'apellido': {'required': False},
+            'password': {'required': False},
+        }
+
 class RegistroSerializer(serializers.ModelSerializer):
     class Meta:
         model = Usuario
