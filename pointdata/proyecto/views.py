@@ -28,7 +28,7 @@ def registrar(request: Request):
         nuevoUsuario.save()
 
         subject = 'Registro exitoso'
-        message = f'Gracias por registrarte. Tu contraseña es: {password}'
+        message = f'Ya puedes utilizar el aplicativo, tu contraseña es: {password}'
         from_email = 'isaias.guizado@gmail.com'
         recipient_list = [nuevoUsuario.correo]
         send_mail(subject, message, from_email, recipient_list)
