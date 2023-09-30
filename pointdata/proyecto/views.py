@@ -12,7 +12,13 @@ from .serializers import *
 from .models import *
 from boto3 import session
 from os import environ, path
+from drf_yasg.utils import swagger_auto_schema
+from drf_yasg import openapi
 
+@swagger_auto_schema(
+        method='post',
+        operation_description="Envia el registro de la tienda"
+)
 
 @api_view(['POST'])
 @permission_classes([IsAdminUser])
@@ -43,6 +49,12 @@ def registrar(request: Request):
 class UsuariosController(APIView):
 
     permission_classes = [IsAdminUser]
+    #se agrego swagger_auto_schema para la documentacion ,probar
+    @swagger_auto_schema(
+        manual_parameters=[
+            openapi.Parameter('id', openapi.IN_PATH, description='ID del usuario', type=openapi.TYPE_STRING)
+        ],
+    )
 
     def get(self, request: Request):
         usuarios = Usuario.objects.all()
