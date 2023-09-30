@@ -2,17 +2,19 @@ from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.request import Request
-from rest_framework.decorators import api_view
-from rest_framework.permissions import IsAdminUser
+from rest_framework.decorators import api_view, permission_classes
+from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
+from rest_framework.parsers import MultiPartParser
 from django.core.mail import send_mail
 from .serializers import *
 from .models import *
-from rest_framework.parsers import MultiPartParser
+from boto3 import session
 
 @api_view(['POST'])
+@permission_classes([IsAdminUser])
 def registrar(request: Request):
-    serializador = RegistroSerializer(data=request.data)
+    serializador = UsuariosSerializer(data=request.data)
 
     if serializador.is_valid():
         nuevoUsuario = Usuario(**serializador.validated_data)
@@ -24,9 +26,10 @@ def registrar(request: Request):
         message = f'Gracias por registrarte. Tu contraseña es: {password}'
         from_email = 'isaias.guizado@gmail.com'
         recipient_list = [nuevoUsuario.correo]
-        send_mail(subject, message, from_email, recipient_list)    
+        send_mail(subject, message, from_email, recipient_list)
 
-        return Response(data={'message': 'Usuario registrado exitosamente'}, status=status.HTTP_201_CREATED)
+        return Response(data={'message': 'Usuario registrado exitosamente'},
+                        status=status.HTTP_201_CREATED)
     else:
         return Response(data={
             'message': 'Error al crear el usuario',
@@ -34,25 +37,23 @@ def registrar(request: Request):
         })
 
 
-class MyTokenObtainPairView(TokenObtainPairView):
-    serializer_class = MyTokenObtainPairSerializer
-
 class UsuariosController(APIView):
 
-   # permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def get(self, request: Request):
         usuarios = Usuario.objects.all()
-        serializador = RegistroSerializer(usuarios, many=True)
+        serializador = UsuariosSerializer(usuarios, many=True)
 
         return Response(data={
             'message': 'Usuarios : ',
             'content': serializador.data
         }, status=status.HTTP_200_OK)
-    
+
+
 class UsuarioController(APIView):
-    
-    #permission_classes = [IsAdminUser] 
+
+    permission_classes = [IsAdminUser]
 
     def get(self, request: Request, id: str):
         usuarioEncontrado = Usuario.objects.filter(id=id).first()
@@ -61,12 +62,12 @@ class UsuarioController(APIView):
                 'message': 'Usuario no encontrado'
             }, status=status.HTTP_404_NOT_FOUND)
 
-        serializador = RegistroSerializer(
+        serializador = UsuarioSerializer(
             instance=usuarioEncontrado)
         return Response(data={
             'content': serializador.data
         }, status=status.HTTP_200_OK)
-    
+
     def put(self, request: Request, id: str):
         usuarioEncontrado = Usuario.objects.filter(id=id).first()
         if not usuarioEncontrado:
@@ -91,7 +92,7 @@ class UsuarioController(APIView):
                 'content': serializador.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request , id):
+    def delete(self, request: Request, id: str):
         usuarioEncontrado = Usuario.objects.filter(id=id).first()
         if not usuarioEncontrado:
             return Response(data={
@@ -104,16 +105,19 @@ class UsuarioController(APIView):
             'message': 'Usuario eliminado exitosamente'
         }, status=status.HTTP_200_OK)
 
+
+class MyTokenObtainPairView(TokenObtainPairView):
+    serializer_class = MyTokenObtainPairSerializer
+
+
 class TiendasController(APIView):
-    #permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def post(self, request: Request):
         serializador = TiendaSerializer(data=request.data)
-        usuarioLogeado: Usuario = request.user
 
         if serializador.is_valid():
-            nuevaTienda = Tienda(usuario=usuarioLogeado, **
-                                 serializador.validated_data)
+            nuevaTienda = Tienda(**serializador.validated_data)
             nuevaTienda.save()
 
             return Response(data={
@@ -136,8 +140,9 @@ class TiendasController(APIView):
             'content': serializador.data
         }, status=status.HTTP_200_OK)
 
+
 class TiendaController(APIView):
-     #permission_classes = [IsAdminUser]
+    permission_classes = [IsAdminUser]
 
     def get(self, request: Request, id: str):
         tiendaEncontrada = Tienda.objects.filter(id=id).first()
@@ -176,7 +181,7 @@ class TiendaController(APIView):
                 'content': serializador.errors
             }, status=status.HTTP_400_BAD_REQUEST)
 
-    def delete(self, request):
+    def delete(self, request: Request, id: str):
         tiendaEncontrada = Tienda.objects.filter(id=id).first()
         if not tiendaEncontrada:
             return Response(data={
@@ -189,29 +194,26 @@ class TiendaController(APIView):
             'message': 'Tienda eliminada exitosamente'
         }, status=status.HTTP_200_OK)
 
+
 class RelevoController (APIView):
-    parser_classes = (MultiPartParser,)
+
+    permission_classes = [IsAuthenticated]
+
+    def post(self, request: Request):
+        usuario = request.user
+        request.data['usuario'] = usuario.id
+        serializer = RelevoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data={'message': 'Relevo creado exitosamente'}, status=status.HTTP_201_CREATED)
+        return Response(data={'message': 'No se pudo crear el relevo',
+                              'content': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request: Request):
-        relevos= Relevo.objects.all()
+        relevos = Relevo.objects.all()
         serializador = RelevoSerializer(relevos, many=True)
 
         return Response(data={
             'message': 'Relevos: ',
             'content': serializador.data
         }, status=status.HTTP_200_OK)
-
-    def post(self, request: Request):
-        serializer = RelevoSerializer(data=request.data)
-        if serializer.is_valid():
-            serializer.save()
-            return Response(data= {'message': 'Relevo creado exitosamente'}, status=status.HTTP_201_CREATED)
-        return Response(data = {'message': 'No se pudo crear el relevo',
-                               'content':serializer.errors }, status=status.HTTP_400_BAD_REQUEST)
-
-
-    #def put (self ):
-     #   pass
-
-    #def delete(self):
-     #   pass
