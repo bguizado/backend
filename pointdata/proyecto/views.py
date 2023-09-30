@@ -8,7 +8,7 @@ from rest_framework_simplejwt.views import TokenObtainPairView
 from django.core.mail import send_mail
 from .serializers import *
 from .models import *
-
+from rest_framework.parsers import MultiPartParser
 
 @api_view(['POST'])
 def registrar(request: Request):
@@ -32,6 +32,7 @@ def registrar(request: Request):
             'message': 'Error al crear el usuario',
             'content': serializador.errors
         })
+
 
 class MyTokenObtainPairView(TokenObtainPairView):
     serializer_class = MyTokenObtainPairSerializer
@@ -135,7 +136,6 @@ class TiendasController(APIView):
             'content': serializador.data
         }, status=status.HTTP_200_OK)
 
-
 class TiendaController(APIView):
      #permission_classes = [IsAdminUser]
 
@@ -188,3 +188,30 @@ class TiendaController(APIView):
         return Response(data={
             'message': 'Tienda eliminada exitosamente'
         }, status=status.HTTP_200_OK)
+
+class RelevoController (APIView):
+    parser_classes = (MultiPartParser,)
+
+    def get(self, request: Request):
+        relevos= Relevo.objects.all()
+        serializador = RelevoSerializer(relevos, many=True)
+
+        return Response(data={
+            'message': 'Relevos: ',
+            'content': serializador.data
+        }, status=status.HTTP_200_OK)
+
+    def post(self, request: Request):
+        serializer = RelevoSerializer(data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(data= {'message': 'Relevo creado exitosamente'}, status=status.HTTP_201_CREATED)
+        return Response(data = {'message': 'No se pudo crear el relevo',
+                               'content':serializer.errors }, status=status.HTTP_400_BAD_REQUEST)
+
+
+    #def put (self ):
+     #   pass
+
+    #def delete(self):
+     #   pass
