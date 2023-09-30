@@ -5,13 +5,9 @@ from rest_framework.request import Request
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAdminUser, IsAuthenticated
 from rest_framework_simplejwt.views import TokenObtainPairView
-from rest_framework.parsers import MultiPartParser
 from django.core.mail import send_mail
-from django.conf import settings
 from .serializers import *
 from .models import *
-from boto3 import session
-from os import environ, path
 
 
 @api_view(['POST'])
@@ -210,14 +206,10 @@ class RelevoController (APIView):
             nuevoRelevo = Relevo(**serializador.validated_data)
             nuevoRelevo.save()
 
-            if nuevoRelevo.imagen:
-                print(settings.BASE_DIR)
-                subir_imagen_s3('{}/media/{}'.format(settings.BASE_DIR, nuevoRelevo.imagen))
-
             return Response(data={'message': 'Relevo creado exitosamente'}, status=status.HTTP_201_CREATED)
-        else: 
+        else:
             return Response(data={'message': 'No se pudo crear el relevo',
-                              'content': serializador.errors}, status=status.HTTP_400_BAD_REQUEST)
+                                  'content': serializador.errors}, status=status.HTTP_400_BAD_REQUEST)
 
     def get(self, request: Request):
         relevos = Relevo.objects.all()
@@ -227,24 +219,3 @@ class RelevoController (APIView):
             'message': 'Relevos: ',
             'content': serializador.data
         }, status=status.HTTP_200_OK)
-
-def subir_imagen_s3(nombre_imagen):
-    if nombre_imagen is None:
-        return
-    
-    nuevaSesion = session.Session(
-            aws_access_key_id=environ.get('AWS_ACCESS_KEY'), 
-            aws_secret_access_key=environ.get('AWS_SECRET_KEY'), 
-            region_name=environ.get('AWS_BUCKET_REGION'))
-    
-    s3Client = nuevaSesion.client('s3')
-
-    bucket = environ.get('AWS_BUCKET_NAME')
-    with open(nombre_imagen, 'rb') as archivo:
-        object_name = path.basename(archivo.name)
-        print(object_name)
-        try:
-            respuesta = s3Client.upload_file(nombre_imagen, bucket, object_name)
-            print(respuesta)
-        except Exception as e:
-            print(e)
