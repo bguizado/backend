@@ -13,6 +13,7 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
 
 
 class UsuariosSerializer(serializers.ModelSerializer):
+
     class Meta:
         model = Usuario
         fields = '__all__'  # Incluye todos los campos del modelo
