@@ -56,7 +56,7 @@ class Tienda(models.Model):
 
 class Relevo(models.Model):
     id = models.AutoField(primary_key=True)
-    imagen = models.ImageField(upload_to='imagenes_relevos/', null=True)
+    imagen = models.ImageField(upload_to='imagenes_relevos/', null=True, blank=True)
     fechaCreacion = models.DateTimeField(
         auto_now_add=True, db_column='fecha_creacion')
     implementado = models.TextField(choices=(

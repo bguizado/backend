@@ -44,7 +44,7 @@ def registrar(request: Request):
 
 class UsuariosController(APIView):
 
-    permission_classes = [AllowAny]
+    permission_classes = [IsAdminUser]
     #se agrego swagger_auto_schema para la documentacion ,probar
     @swagger_auto_schema(
         manual_parameters=[
@@ -211,8 +211,15 @@ class RelevoController (APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request: Request):
-        usuario = request.user
-        request.data['usuario'] = usuario.id
+        # usuario = request.user
+        # request.data['usuario'] = usuario.id
+        # Obtén el ID del usuario actual
+        usuario_id = request.user.id
+
+        # Actualiza el atributo 'usuario' en la solicitud 'request.data'
+        request.data['usuario'] = usuario_id
+
+
         serializador = RelevoSerializer(data=request.data)
         if serializador.is_valid():
             nuevoRelevo = Relevo(**serializador.validated_data)
